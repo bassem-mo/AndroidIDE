@@ -259,32 +259,7 @@ open class IDEEditor @JvmOverloads constructor(
   }
 
   override fun signatureHelp() {
-    if (isReleased) {
-      return
-    }
-    val languageServer = this.languageServer ?: return
-    val file = this.file ?: return
-
-    this.languageClient ?: return
-
-    sigHelpCancelChecker?.also { it.cancel() }
-
-    val cancelChecker = JobCancelChecker().also {
-      this.sigHelpCancelChecker = it
-    }
-
-    editorScope.launch(Dispatchers.Default) {
-      cancelChecker.job = coroutineContext[Job]
-
-      val help = safeGet("signature help request") {
-        val params = SignatureHelpParams(file.toPath(), cursorLSPPosition, cancelChecker)
-        languageServer.signatureHelp(params)
-      }
-
-      withContext(Dispatchers.Main) {
-        showSignatureHelp(help)
-      }
-    }.logError("signature help request")
+    
   }
 
   override fun showSignatureHelp(help: SignatureHelp?) {
@@ -456,20 +431,7 @@ open class IDEEditor @JvmOverloads constructor(
    * Analyze the opened file and publish the diagnostics result.
    */
   open fun analyze() {
-    if (isReleased) {
-      return
-    }
-    if (editorLanguage !is IDELanguage) {
-      return
-    }
-
-    val languageServer = languageServer ?: return
-    val file = file ?: return
-
-    editorScope.launch {
-      val result = safeGet("LSP file analysis") { languageServer.analyze(file.toPath()) }
-      languageClient?.publishDiagnostics(result)
-    }.logError("LSP file analysis")
+    
   }
 
   /**
@@ -553,25 +515,9 @@ open class IDEEditor @JvmOverloads constructor(
    * This applies a proper [Language] and the color scheme to the editor.
    */
   open fun setupLanguage(file: File?) {
-    if (isReleased) {
-      return
-    }
-    if (file == null) {
-      return
-    }
-
-    createLanguage(file) { language ->
-      val extension = file.extension
-      if (language is TreeSitterLanguage) {
-        IDEColorSchemeProvider.readSchemeAsync(context = context, coroutineScope = editorScope,
-          type = extension) { scheme ->
-          applyTreeSitterLang(language, extension, scheme)
-        }
-      } else {
-        setEditorLanguage(language)
-      }
-    }
-  }
+    if (isReleased || file == null) return
+    setEditorLanguage(EmptyLanguage()) // Forcefully set an empty language
+}
 
   /**
    * Applies the given [TreeSitterLanguage] and the [color scheme][scheme] for the given [file type][type].
