@@ -1,5 +1,12 @@
 name: Build and test
 
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v3
+      - run: echo "Hello from GitHub-hosted runner"
+
 on:
   push:
     branches: [ "dev", "main", "indexing", "release/**" ]
